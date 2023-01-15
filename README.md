@@ -2,6 +2,16 @@
 Simple bash script to enable/disable supports on a web site share on GL.iNET devices
 
 ## Pre-requisites
+
+Rename your router to `pastaga.local` via Luci/GL.iNET web app.
+
+Install avahi for HTTP and SSH to enable zeroconfiguration:
+```bash
+opkg update
+opkg install avahi-daemon-service-ssh avahi-daemon-service-http
+```
+
+
 You have to move GL.iNET admin panel to 8080/8443 editing `/etc/nginx/conf.d/gl.conf`, changing
 ```bash
     listen 80;
@@ -22,6 +32,7 @@ to
 
 Install cryptsetup and apache2 package
 ```bash
+opkg update
 opkg install apache2 cryptsetup
 ```
 In Apache2 configuration file at `/etc/apache2/apache2.conf`, please modify lines:
