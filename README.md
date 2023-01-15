@@ -44,5 +44,10 @@ Copy the content of mnt-encrypted to `/mnt/encrypted` while SDCard is mounted.
 
 Run `support-disable`.
 
-# how does it work?
+##How does it work?
 This script mount your luks-ed sdcard, look for the support asked in `/mnt/encrypted/supports/`, then put it as a symlink in `/mnt/encrypted/htdocs/Supports`, and changes apache2 webroot to `/mnt/encrypted/htdocs`
+
+##Credits
+### apaxy
+Copyright (C) 2021 @adamwhitcroft
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
