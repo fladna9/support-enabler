@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+. common.sh
 
 function main {
 
@@ -11,10 +13,7 @@ function main {
 }
 
 function umountStorage {
-	ISMOUNTED=`mount | grep /mnt/encrypted | wc -l`
-	if [[ $ISMOUNTED -eq 1 ]]; then
-		umount /mnt/encrypted
-	fi
+	is_storage_mounted && umount "$ENC_DIR"
 
 	cryptsetup luksClose encrypted
 
@@ -22,32 +21,15 @@ function umountStorage {
 }
 
 function supportAndSiteCleanUp {
-	if [[ -L /mnt/encrypted/htdocs/Supports ]]; then
-		rm /mnt/encrypted/htdocs/Supports
-	fi
-	if [[ -L /usr/share/apache2/site-enabled ]]; then
-		rm /usr/share/apache2/site-enabled
-	fi
+	local link
 
-	ln -s /usr/share/apache2/htdocs /usr/share/apache2/site-enabled
+	for link in "$ENC_DIR/htdocs/Supports" "$APACHE_DIR/site-enabled"; do
+		[[ -L "$link" ]] && rm "$link"
+	done
+
+	ln -s "$APACHE_DIR/htdocs" "$APACHE_DIR/site-enabled"
 
 	echo "Activation cleanup OK."
 }
 
-function restartApache {
-	/etc/init.d/apache2 restart
-	echo "Apache2 restarted OK."
-}
-
-function directExit {
-	echo $1
-	exit 1
-}
-
-function cleanupExit {
-	echo $1
-	cours-disable
-	exit 1
-}
-
-main $*
+main
