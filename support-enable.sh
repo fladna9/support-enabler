@@ -1,19 +1,17 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+. common.sh
 
 function main {
-
-	if [[ -z "$1" ]]; then
-		SUPPORTASKED="NONE"
-	else
-		SUPPORTASKED="$1"
-	fi
+	SUPPORTASKED="$1"
+	[[ -z "$SUPPORTASKED" ]] && SUPPORTASKED="NONE"
 
 	mountStorage
 
-	listSupportsAndCheckRequestedSupport "$SUPPORTASKED"
+	listSupportsAndCheckRequestedSupport
 	supportCheck
 	setSiteEnabled
-	setSupportEnabled "$SUPPORTASKED"
+	setSupportEnabled
 
 	restartApache
 
@@ -21,70 +19,46 @@ function main {
 	exit 0
 }
 
-
 function mountStorage {
+	is_storage_mounted \
+		&& echo -e "SDCard already mounted, continuing...\nMount OK." \
+		&& return
 
-	ISMOUNTED=`mount | grep /mnt/encrypted | wc -l`
-	if [[ $ISMOUNTED -eq 0 ]]; then
-		cryptsetup luksOpen /dev/mmcblk0 encrypted
-		if [[ ! $? -eq 0 ]]; then
-			directExit "Failed to open LUKS device, exiting."
-		fi
+	cryptsetup luksOpen /dev/mmcblk0 encrypted \
+		|| directExit "Failed to open LUKS device, exiting."
 
-		mount -t ext4 /dev/mapper/encrypted /mnt/encrypted
-		if [[ ! $? -eq 0 ]]; then
-			directExit "Failed to open mount LUKS mapper device, exiting."
-		fi
-	else
-		echo "SDCard already mounted, continuing..."
-	fi
-	
+	mount -t ext4 /dev/mapper/encrypted "$ENC_DIR" \
+		|| directExit "Failed to open mount LUKS mapper device, exiting."
+
 	echo "Mount OK."
 }
 
 function listSupportsAndCheckRequestedSupport {
-	if [[ ! -d "/mnt/encrypted/supports/$1" ]]; then
+	if [[ ! -d "$ENC_DIR/supports/$SUPPORTASKED" ]]; then
 		echo "Requested support does not exist. Please choose one of:"
-		echo `ls /mnt/encrypted/supports/`
+		echo $(ls "$ENC_DIR/supports/")
 		cleanupExit "Umounting and exiting."
 	fi
-	echo "Support $1 FOUND."
+	echo "Support $SUPPORTASKED FOUND."
 }
 
 function supportCheck {
-	if [[ -L /mnt/encrypted/htdocs/Supports ]]; then
-		rm /mnt/encrypted/htdocs/Supports
-	fi
-	if [[ -L /usr/share/apache2/site-enabled ]]; then
-		rm /usr/share/apache2/site-enabled
-	fi
+	local link
+
+	for link in "$ENC_DIR/htdocs/Supports" "$APACHE_DIR/site-enabled"; do
+		[[ -L "$link" ]] && rm "$link"
+	done
 	echo "Previous activation cleanup OK."
 }
 
 function setSiteEnabled {
-	ln -s /mnt/encrypted/htdocs /usr/share/apache2/site-enabled
+	ln -s "$ENC_DIR/htdocs" "$APACHE_DIR/site-enabled"
 	echo "Pastaga ENABLED."
 }
 
 function setSupportEnabled {
-	ln -s "/mnt/encrypted/supports/$1" /mnt/encrypted/htdocs/Supports
-	echo "Support $1 ENABLED."
+	ln -s "$ENC_DIR/supports/$SUPPORTASKED" "$ENC_DIR/htdocs/Supports"
+	echo "Support $SUPPORTASKED ENABLED."
 }
 
-function restartApache {
-	/etc/init.d/apache2 restart
-	echo "Apache2 restarted OK."
-}
-
-function directExit {
-	echo $1
-	exit 1
-}
-
-function cleanupExit {
-	echo $1
-	cours-disable
-	exit 1
-}
-
-main $*
+main "$@"
